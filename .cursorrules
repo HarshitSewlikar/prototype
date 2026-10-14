@@ -1,0 +1,17 @@
+# Agent Guidelines & Rules (Superpowers + UI/UX Pro Max)
+
+This repository adheres to the standards of:
+1. `obra/superpowers`: Test-driven development, systematic debugging, and verification gates.
+2. `nextlevelbuilder/ui-ux-pro-max-skill`: High-density FinTech UI/UX design intelligence and anti-AI-slop design constitution.
+
+## 1. Engineering Discipline (Superpowers)
+- **TDD:** Write or update tests in `src/test/*.test.js` when adding or modifying business logic.
+- **Verification Gates:** Run `npm run test` and `npm run build` before considering any task complete.
+- **Root Cause Debugging:** Never patch blindly; trace the failure, replicate in a test, and fix the source.
+
+## 2. Design Intelligence (UI/UX Pro Max)
+- **Theme:** Modern High-Density FinTech Dashboard.
+- **Colors:** Deep Slate `#0f172a` for chrome/sidebar, Pure White `#ffffff` with slate borders `#e2e8f0` for cards.
+- **Financial Status Colors:** Emerald/Green (`#16a34a`) for gains, Crimson/Red (`#dc2626`) for losses.
+- **Numbers:** Always use tabular numbers (`tabular-nums font-mono`) for currency, shares, and percentages.
+- **Components:** Micro-hover states, sharp contrast badges, responsive grid layouts.

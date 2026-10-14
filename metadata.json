@@ -1,0 +1,4 @@
+{
+  "name": "Financial Analytics Dashboard",
+  "description": "Comprehensive financial analytics dashboard with stock market trend charts, sector performance, market movers heatmap, stock scoring, RBAC access control, to-dos, and audit logging."
+}
