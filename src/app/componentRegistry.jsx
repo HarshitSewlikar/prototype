@@ -9,6 +9,7 @@ export const COMPONENT_REGISTRY = {
   RolesAdminPage: lazy(() => import('../features/roles/RolesAdminPage')),
   PermissionsAdminPage: lazy(() => import('../features/permissions/PermissionsAdminPage')),
   MenusAdminPage: lazy(() => import('../features/menus/MenusAdminPage')),
+  ModulesAdminPage: lazy(() => import('../features/modules/ModulesAdminPage')),
   AuditPage: lazy(() => import('../features/audit/AuditPage')),
 }
 

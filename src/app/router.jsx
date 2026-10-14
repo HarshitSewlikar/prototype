@@ -5,8 +5,9 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import { ErrorState, Spinner } from '../components/common/Ui'
 import { flattenMenus, resolveComponent } from './componentRegistry'
+import { moduleForMenu } from './moduleMap'
 import { useAuth } from '../features/auth/AuthProvider'
-import { useAccess } from '../features/auth/useAccess'
+import { useAccess, useModules } from '../features/auth/useAccess'
 import LoginPage from '../features/auth/LoginPage'
 import BootstrapPage from '../features/auth/BootstrapPage'
 
@@ -35,6 +36,7 @@ const NotFound = () => <ErrorState message="Page not found or you do not have pe
 export const AppRoutes = () => {
   const { status, isAuthenticated, setupComplete } = useAuth()
   const access = useAccess()
+  const { isModuleEnabled } = useModules()
 
   if (status === 'loading' || setupComplete === null) {
     return (
@@ -77,7 +79,9 @@ export const AppRoutes = () => {
     )
   }
 
-  const menuRoutes = flattenMenus(access.data?.menus || []).filter((m) => m.component_key)
+  const menuRoutes = flattenMenus(access.data?.menus || [])
+    .filter((m) => m.component_key)
+    .filter((m) => isModuleEnabled(moduleForMenu(m.code)))
   const firstPath = menuRoutes[0]?.path || '/dashboard'
 
   return (

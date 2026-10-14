@@ -140,3 +140,31 @@ class UserPermissionOverride(models.Model):
 
     def __str__(self):
         return f"{self.user_id} {self.effect} {self.permission.code}"
+
+
+class ModuleSetting(models.Model):
+    """Application-wide feature enablement flag.
+
+    One row per code-registered module (:data:`access_control.catalog.
+    REGISTERED_MODULES`). This is deliberately separate from RBAC: a module is
+    either enabled application-wide or not, independent of which users hold
+    which permissions. The project is single-tenant, so no tenant scoping is
+    applied. A missing row defaults to enabled.
+    """
+
+    code = models.CharField(max_length=100, unique=True)
+    is_enabled = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["code"]
+
+    def __str__(self):
+        return f"{self.code}:{'on' if self.is_enabled else 'off'}"

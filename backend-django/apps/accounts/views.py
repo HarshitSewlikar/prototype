@@ -15,6 +15,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from access_control import policy
+from access_control.modules import module_settings_snapshot
 from audit.services import record_audit
 from common.context import get_request_context
 from navigation.services import visible_menus_for
@@ -221,5 +222,6 @@ class MeAccessView(APIView):
                 "permissions": snapshot["permissions"],
                 "is_protected_admin": snapshot["is_protected_admin"],
                 "menus": visible_menus_for(request.user),
+                "modules": module_settings_snapshot(),
             }
         )

@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from django.db import transaction
 
-from .catalog import REGISTERED_PERMISSIONS, SYSTEM_ROLE_DEFINITIONS
-from .models import Permission, Role, RolePermission
+from .catalog import (
+    REGISTERED_MODULES,
+    REGISTERED_PERMISSIONS,
+    SYSTEM_ROLE_DEFINITIONS,
+)
+from .models import ModuleSetting, Permission, Role, RolePermission
 
 MENU_DEFINITIONS = [
     {
@@ -57,6 +61,14 @@ MENU_DEFINITIONS = [
         "sort_order": 60,
     },
     {
+        "code": "modules",
+        "label": "Modules",
+        "path": "/admin/modules",
+        "component_key": "ModulesAdminPage",
+        "required_permission": "modules.read",
+        "sort_order": 65,
+    },
+    {
         "code": "audit",
         "label": "Audit Log",
         "path": "/admin/audit",
@@ -74,6 +86,7 @@ ROLE_MENUS = {
         "roles",
         "permissions",
         "menus",
+        "modules",
         "audit",
     ],
     "standard_user": ["dashboard", "todos"],
@@ -141,4 +154,16 @@ def seed_rbac() -> dict:
             if menu is not None:
                 RoleMenu.objects.get_or_create(role=role, menu=menu)
 
-    return {"roles": roles, "permissions": created_permissions, "menus": menus}
+    modules = {}
+    for module_def in REGISTERED_MODULES:
+        setting, _ = ModuleSetting.objects.get_or_create(
+            code=module_def.code, defaults={"is_enabled": True}
+        )
+        modules[setting.code] = setting
+
+    return {
+        "roles": roles,
+        "permissions": created_permissions,
+        "menus": menus,
+        "modules": modules,
+    }

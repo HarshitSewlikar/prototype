@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from access_control.permissions import HasPermission
+from access_control.permissions import HasPermission, ModuleEnabled
 
 from . import alpha_vantage, cache
 from .scoring import calculate_stock_score
@@ -21,7 +21,7 @@ def _respond(result):
 
 
 class DailyStockView(APIView):
-    permission_classes = [HasPermission("market.read")]
+    permission_classes = [HasPermission("market.read"), ModuleEnabled("market")]
 
     def get(self, request, symbol):
         symbol = str(symbol).upper()
@@ -38,7 +38,7 @@ class DailyStockView(APIView):
 
 
 class SectorPerformanceView(APIView):
-    permission_classes = [HasPermission("market.read")]
+    permission_classes = [HasPermission("market.read"), ModuleEnabled("market")]
 
     def get(self, request):
         result = cache.get_or_fetch(
@@ -48,7 +48,7 @@ class SectorPerformanceView(APIView):
 
 
 class MarketMoversView(APIView):
-    permission_classes = [HasPermission("market.read")]
+    permission_classes = [HasPermission("market.read"), ModuleEnabled("market")]
 
     def get(self, request):
         result = cache.get_or_fetch(
@@ -58,7 +58,7 @@ class MarketMoversView(APIView):
 
 
 class StockScoreView(APIView):
-    permission_classes = [HasPermission("market.read")]
+    permission_classes = [HasPermission("market.read"), ModuleEnabled("market")]
 
     def get(self, request, symbol):
         symbol = str(symbol).upper()

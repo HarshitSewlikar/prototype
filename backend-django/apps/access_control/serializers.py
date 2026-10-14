@@ -156,3 +156,9 @@ class UserRoleSerializer(serializers.ModelSerializer):
         model = UserRole
         fields = ["id", "role", "role_code", "role_name", "assigned_at", "expires_at"]
         read_only_fields = fields
+
+
+class ModuleUpdateSerializer(serializers.Serializer):
+    """Write serializer for enabling/disabling a feature module."""
+
+    is_enabled = serializers.BooleanField()

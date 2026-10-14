@@ -14,9 +14,22 @@ User = get_user_model()
 
 
 class UserPublicSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "name", "username", "email", "is_active", "is_protected_admin"]
+        fields = [
+            "id",
+            "name",
+            "username",
+            "email",
+            "is_active",
+            "is_protected_admin",
+            "roles",
+        ]
+
+    def get_roles(self, obj):
+        return sorted(obj.user_roles.values_list("role__code", flat=True))
 
 
 class BootstrapSerializer(serializers.Serializer):

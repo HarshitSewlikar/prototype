@@ -6,6 +6,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from access_control import policy
+from access_control.catalog import module_for_menu_code
+from access_control.modules import enabled_module_codes
 
 from .models import Menu
 
@@ -36,7 +38,11 @@ def visible_menus_for(user) -> list[dict]:
         qs = _visible_menu_qs(user)
 
     allowed = []
+    enabled_modules = enabled_module_codes()
     for menu in qs.order_by("sort_order", "label"):
+        module_code = module_for_menu_code(menu.code)
+        if module_code and module_code not in enabled_modules:
+            continue
         if menu.required_permission and not policy.has_permission(
             user, menu.required_permission
         ):

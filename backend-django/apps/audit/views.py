@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from access_control.permissions import HasPermission
+from access_control.permissions import HasPermission, ModuleEnabled
 from common.pagination import AuditCursorPagination
 
 from .models import AuditLog
@@ -25,9 +25,10 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ["action", "resource_type", "actor"]
 
     def get_permissions(self):
+        module = ModuleEnabled("audit")()
         if self.action == "export":
-            return [HasPermission("audit.export")()]
-        return [HasPermission("audit.read")()]
+            return [HasPermission("audit.export")(), module]
+        return [HasPermission("audit.read")(), module]
 
     def get_queryset(self):
         qs = super().get_queryset()

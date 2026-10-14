@@ -15,8 +15,13 @@ import {
   getSetupStatus,
   login as apiLogin,
   logout as apiLogout,
-  switchUser as apiSwitchUser,
 } from '../../services/endpoints'
+import {
+  ensureCsrfCookie,
+  refreshAccessToken,
+  setAccessToken,
+  setAuthLostHandler,
+} from '../../services/http'
 
 const AuthContext = createContext(null)
 
@@ -28,12 +33,15 @@ export const AuthProvider = ({ children }) => {
   const didInit = useRef(false)
 
   const clearSession = useCallback(() => {
+    setAccessToken(null)
     setUser(null)
   }, [])
 
   const restore = useCallback(async () => {
     setStatus('loading')
     try {
+      await ensureCsrfCookie().catch(() => {})
+      await refreshAccessToken().catch(() => {})
       const me = await getMe()
       setUser(me.user)
     } catch {
@@ -42,6 +50,13 @@ export const AuthProvider = ({ children }) => {
       setStatus('ready')
     }
   }, [clearSession])
+
+  useEffect(() => {
+    setAuthLostHandler(() => {
+      clearSession()
+      queryClient.clear()
+    })
+  }, [clearSession, queryClient])
 
   useEffect(() => {
     if (didInit.current) return
@@ -59,28 +74,19 @@ export const AuthProvider = ({ children }) => {
       queryClient.invalidateQueries()
       return data.user
     },
-    [queryClient]
+    [queryClient],
   )
 
-  const switchAccount = useCallback(
-    async (username) => {
-      const switchedUser = await apiSwitchUser(username)
-      if (switchedUser) {
-        setUser(switchedUser)
-        queryClient.invalidateQueries()
-      }
-      return switchedUser
+  const bootstrapAdmin = useCallback(
+    async (payload) => {
+      const data = await apiBootstrap(payload)
+      setUser(data.user)
+      setSetupComplete(true)
+      queryClient.invalidateQueries()
+      return data.user
     },
-    [queryClient]
+    [queryClient],
   )
-
-  const bootstrapAdmin = useCallback(async (payload) => {
-    const data = await apiBootstrap(payload)
-    setUser(data.user)
-    setSetupComplete(true)
-    queryClient.invalidateQueries()
-    return data.user
-  }, [queryClient])
 
   const logout = useCallback(async () => {
     try {
@@ -98,7 +104,6 @@ export const AuthProvider = ({ children }) => {
     setupComplete,
     isAuthenticated: !!user,
     login,
-    switchAccount,
     bootstrapAdmin,
     logout,
     refreshSession: restore,

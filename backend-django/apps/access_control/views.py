@@ -14,10 +14,19 @@ from audit.services import record_audit
 from navigation.models import Menu, RoleMenu
 
 from . import policy
-from .catalog import REGISTERED_CODES, is_registered
-from .models import Permission, Role, RolePermission, UserPermissionOverride, UserRole
-from .permissions import HasPermission
+from .catalog import REGISTERED_CODES, is_registered, is_registered_module
+from .models import (
+    ModuleSetting,
+    Permission,
+    Role,
+    RolePermission,
+    UserPermissionOverride,
+    UserRole,
+)
+from .modules import module_settings_snapshot
+from .permissions import HasPermission, ModuleEnabled
 from .serializers import (
+    ModuleUpdateSerializer,
     PermissionSerializer,
     RoleMenuAssignSerializer,
     RolePermissionAssignSerializer,
@@ -58,13 +67,14 @@ class RoleViewSet(viewsets.ModelViewSet):
     ordering_fields = ["code", "name", "created_at"]
 
     def get_permissions(self):
+        module = ModuleEnabled("roles_permissions")()
         if self.action in {"list", "retrieve"}:
-            return [HasPermission("roles.read")()]
+            return [HasPermission("roles.read")(), module]
         if self.action == "set_permissions":
-            return [HasPermission("permissions.assign")()]
+            return [HasPermission("permissions.assign")(), module]
         if self.action == "set_menus":
-            return [HasPermission("menus.assign")()]
-        return [HasPermission("roles.manage")()]
+            return [HasPermission("menus.assign")(), module]
+        return [HasPermission("roles.manage")(), module]
 
     def perform_create(self, serializer):
         role = serializer.save()
@@ -198,9 +208,10 @@ class PermissionViewSet(viewsets.ModelViewSet):
     filterset_fields = ["resource", "action", "is_active"]
 
     def get_permissions(self):
+        module = ModuleEnabled("roles_permissions")()
         if self.action in {"list", "retrieve"}:
-            return [HasPermission("permissions.read")()]
-        return [HasPermission("permissions.manage")()]
+            return [HasPermission("permissions.read")(), module]
+        return [HasPermission("permissions.manage")(), module]
 
     def create(self, request, *args, **kwargs):
         actor = request.user
@@ -267,9 +278,10 @@ class PermissionViewSet(viewsets.ModelViewSet):
 
 class UserRolesView(APIView):
     def get_permissions(self):
+        module = ModuleEnabled("roles_permissions")()
         if self.request.method == "GET":
-            return [HasPermission("users.read")()]
-        return [HasPermission("roles.assign")()]
+            return [HasPermission("users.read")(), module]
+        return [HasPermission("roles.assign")(), module]
 
     def get(self, request, user_id):
         target = get_object_or_404(User, pk=user_id, deleted_at__isnull=True)
@@ -344,9 +356,10 @@ class UserRolesView(APIView):
 
 class UserPermissionOverridesView(APIView):
     def get_permissions(self):
+        module = ModuleEnabled("roles_permissions")()
         if self.request.method == "GET":
-            return [HasPermission("permissions.read")()]
-        return [HasPermission("permissions.assign")()]
+            return [HasPermission("permissions.read")(), module]
+        return [HasPermission("permissions.assign")(), module]
 
     def get(self, request, user_id):
         target = get_object_or_404(User, pk=user_id, deleted_at__isnull=True)
@@ -404,3 +417,60 @@ class UserPermissionOverridesView(APIView):
             after={"overrides": overrides},
         )
         return Response({"overrides": overrides})
+
+
+class ModuleListView(APIView):
+    """List every code-registered feature module with its enabled state."""
+
+    def get_permissions(self):
+        return [HasPermission("modules.read")()]
+
+    def get(self, request):
+        return Response({"modules": module_settings_snapshot()})
+
+
+class ModuleDetailView(APIView):
+    """Enable or disable a single registered feature module."""
+
+    def get_permissions(self):
+        return [HasPermission("modules.manage")()]
+
+    def _update(self, request, code):
+        if not is_registered_module(code):
+            return Response(
+                {"error": {"detail": f"Unknown module code: {code}"}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = ModuleUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        enabled = serializer.validated_data["is_enabled"]
+
+        setting, _ = ModuleSetting.objects.get_or_create(
+            code=code, defaults={"is_enabled": True}
+        )
+        before = {"is_enabled": setting.is_enabled}
+        setting.is_enabled = enabled
+        setting.updated_by = request.user
+        setting.save(update_fields=["is_enabled", "updated_by", "updated_at"])
+
+        record_audit(
+            actor=request.user,
+            action="module_enabled" if enabled else "module_disabled",
+            resource_type="Module",
+            object_id=code,
+            before=before,
+            after={"is_enabled": enabled},
+        )
+        return Response(
+            {
+                "code": code,
+                "is_enabled": setting.is_enabled,
+                "updated_at": setting.updated_at,
+            }
+        )
+
+    def put(self, request, code):
+        return self._update(request, code)
+
+    def patch(self, request, code):
+        return self._update(request, code)

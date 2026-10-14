@@ -63,6 +63,15 @@ REGISTERED_PERMISSIONS: tuple[PermissionDefinition, ...] = (
     PermissionDefinition(
         "market.read", "market", "read", "Access market/finance data"
     ),
+    PermissionDefinition(
+        "modules.read", "modules", "read", "View feature module configuration"
+    ),
+    PermissionDefinition(
+        "modules.manage",
+        "modules",
+        "manage",
+        "Enable or disable feature modules",
+    ),
 )
 
 REGISTERED_CODES: frozenset = frozenset(
@@ -72,6 +81,75 @@ REGISTERED_CODES: frozenset = frozenset(
 
 def is_registered(code: str) -> bool:
     return code in REGISTERED_CODES
+
+
+@dataclass(frozen=True)
+class ModuleDefinition:
+    """A switchable application feature module.
+
+    Modules are code-registered (like permissions). A ``ModuleSetting`` row is
+    inert unless its ``code`` appears here, so configuration cannot invent new
+    capabilities. ``menu_codes`` maps the module to the navigation entries it
+    owns, so disabling a module removes those menus.
+    """
+
+    code: str
+    name: str
+    description: str
+    menu_codes: tuple[str, ...]
+
+
+REGISTERED_MODULES: tuple[ModuleDefinition, ...] = (
+    ModuleDefinition(
+        "market",
+        "Market Dashboard",
+        "Stock trends, sector performance and market movers analytics.",
+        ("dashboard",),
+    ),
+    ModuleDefinition(
+        "todos",
+        "To-do Management",
+        "Task tracking with lifecycle states and assignment.",
+        ("todos",),
+    ),
+    ModuleDefinition(
+        "users",
+        "User Management",
+        "Application user administration.",
+        ("users",),
+    ),
+    ModuleDefinition(
+        "roles_permissions",
+        "Roles & Permissions",
+        "Role and permission configuration.",
+        ("roles", "permissions"),
+    ),
+    ModuleDefinition(
+        "audit",
+        "Audit Logs",
+        "Security and change audit trail.",
+        ("audit",),
+    ),
+)
+
+REGISTERED_MODULE_CODES: frozenset = frozenset(
+    definition.code for definition in REGISTERED_MODULES
+)
+
+# Menu code -> owning module code (menus absent here are core/always-on).
+MODULE_BY_MENU_CODE: dict[str, str] = {
+    menu_code: definition.code
+    for definition in REGISTERED_MODULES
+    for menu_code in definition.menu_codes
+}
+
+
+def is_registered_module(code: str) -> bool:
+    return code in REGISTERED_MODULE_CODES
+
+
+def module_for_menu_code(menu_code: str) -> str | None:
+    return MODULE_BY_MENU_CODE.get(menu_code)
 
 
 # System roles seeded by the ``seed_rbac`` management command.
@@ -94,6 +172,7 @@ SYSTEM_ROLE_DEFINITIONS: tuple[dict, ...] = (
             "permissions.read",
             "menus.read",
             "market.read",
+            "modules.read",
         ],
     },
     {

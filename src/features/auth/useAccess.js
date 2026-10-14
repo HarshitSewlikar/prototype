@@ -21,3 +21,17 @@ export const usePermission = () => {
   const permissions = data?.permissions || []
   return (code) => permissions.includes(code)
 }
+
+// Application-wide feature modules. Unknown codes are treated as enabled so
+// that transient load states never hide navigation the user is entitled to.
+export const useModules = () => {
+  const { data } = useAccess()
+  const modules = data?.modules || []
+  const isModuleEnabled = (code) => {
+    if (!code) return true
+    if (!modules.length) return true
+    const match = modules.find((module) => module.code === code)
+    return match ? !!match.is_enabled : true
+  }
+  return { modules, isModuleEnabled }
+}

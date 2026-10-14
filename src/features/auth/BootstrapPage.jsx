@@ -66,7 +66,7 @@ const BootstrapPage = () => {
           label="Password"
           name="password"
           type="password"
-          minLength={6}
+          minLength={8}
           value={form.password}
           onChange={onChange}
           required
@@ -75,7 +75,7 @@ const BootstrapPage = () => {
           label="Confirm password"
           name="confirm_password"
           type="password"
-          minLength={6}
+          minLength={8}
           value={form.confirm_password}
           onChange={onChange}
           required

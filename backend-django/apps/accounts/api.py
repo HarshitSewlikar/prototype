@@ -10,7 +10,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from access_control.models import Role
-from access_control.permissions import CanManageTargetUser, HasPermission
+from access_control.permissions import (
+    CanManageTargetUser,
+    HasPermission,
+    ModuleEnabled,
+)
 from audit.services import record_audit
 
 from .serializers import (
@@ -31,15 +35,16 @@ class UserViewSet(viewsets.ModelViewSet):
     filterset_fields = ["is_active"]
 
     def get_permissions(self):
+        module = ModuleEnabled("users")()
         if self.action in {"list", "retrieve"}:
-            return [HasPermission("users.read")()]
+            return [HasPermission("users.read")(), module]
         if self.action == "create":
-            return [HasPermission("users.create")()]
+            return [HasPermission("users.create")(), module]
         if self.action in {"update", "partial_update"}:
-            return [HasPermission("users.update")(), CanManageTargetUser()]
+            return [HasPermission("users.update")(), CanManageTargetUser(), module]
         if self.action == "destroy":
-            return [HasPermission("users.deactivate")(), CanManageTargetUser()]
-        return [HasPermission("users.read")()]
+            return [HasPermission("users.deactivate")(), CanManageTargetUser(), module]
+        return [HasPermission("users.read")(), module]
 
     def create(self, request, *args, **kwargs):
         serializer = UserCreateSerializer(data=request.data)

@@ -5,10 +5,28 @@ from __future__ import annotations
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 from . import policy
+from .modules import is_module_enabled
 
 
 def _authenticated(user) -> bool:
     return bool(user and user.is_authenticated and user.is_active and user.deleted_at is None)
+
+
+def ModuleEnabled(code: str):
+    """Factory: allow only while the registered feature module is enabled.
+
+    Independent of RBAC - a module may be enabled application-wide while a user
+    still lacks the permission the endpoint separately requires.
+    """
+
+    class _ModuleEnabled(BasePermission):
+        message = f"Module disabled: {code}"
+
+        def has_permission(self, request, view):
+            return is_module_enabled(code)
+
+    _ModuleEnabled.__name__ = f"ModuleEnabled_{code}"
+    return _ModuleEnabled
 
 
 def HasPermission(code: str):

@@ -13,5 +13,6 @@ ALLOWED_COMPONENT_KEYS = frozenset(
         "PermissionsAdminPage",
         "MenusAdminPage",
         "AuditPage",
+        "ModulesAdminPage",
     }
 )
