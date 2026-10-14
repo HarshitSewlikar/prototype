@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { queryKeys } from '../../app/queryClient'
+import { invalidateAuthorization, queryKeys } from '../../app/queryClient'
 import {
   Button,
   Card,
@@ -26,12 +26,21 @@ import {
   setUserRoles,
   updateUser,
 } from '../../services/endpoints'
+import { useAuth } from '../auth/AuthProvider'
 import { usePermission } from '../auth/useAccess'
+
+const DEMO_ACCOUNTS = [
+  { username: 'admin', role: 'Administrator', desc: 'Full access (Admin, RBAC, To-dos, Market)' },
+  { username: 'auditor', role: 'Auditor', desc: 'Read-only audit trail and market data' },
+  { username: 'user', role: 'Finance Analyst', desc: 'Scoped to-dos and market analytics' },
+]
 
 const emptyForm = { username: '', name: '', email: '', password: '', is_active: true }
 
 const UsersAdminPage = () => {
+  const { user } = useAuth()
   const can = usePermission()
+  const isAdmin = !!user?.is_protected_admin || (user?.roles || []).includes('administrator')
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -44,7 +53,10 @@ const UsersAdminPage = () => {
     queryFn: () => listUsers({ page, page_size: 25, search: search || undefined }),
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users'] })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['users'] })
+    invalidateAuthorization(queryClient)
+  }
 
   const saveMutation = useMutation({
     mutationFn: (payload) =>
@@ -169,6 +181,24 @@ const UsersAdminPage = () => {
 
   return (
     <div className="space-y-4">
+      {isAdmin && (
+        <Card title="Demo accounts">
+          <p className="mb-3 text-xs text-slate-500">
+            These sample accounts are visible only to an administrator.
+          </p>
+          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+            {DEMO_ACCOUNTS.map((account) => (
+              <li key={account.username} className="flex items-center justify-between gap-3 px-3 py-2">
+                <div>
+                  <span className="font-mono text-sm font-semibold text-slate-900">{account.username}</span>
+                  <span className="ml-2 text-xs text-slate-500">{account.role}</span>
+                  <p className="text-[11px] text-slate-400">{account.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
       <Card
         title="User Accounts Management"
         actions={can('users.create') && <Button onClick={openCreate}>+ New user</Button>}
@@ -330,6 +360,7 @@ const UserRolesModal = ({ user, onClose, onSaved }) => {
 }
 
 const UserOverridesModal = ({ user, onClose }) => {
+  const queryClient = useQueryClient()
   const permissions = useQuery({
     queryKey: queryKeys.permissions({ all: true }),
     queryFn: () => listPermissions({ page_size: 200 }),
@@ -354,7 +385,11 @@ const UserOverridesModal = ({ user, onClose }) => {
         .map(([permission_code, effect]) => ({ permission_code, effect }))
       return setUserOverrides(user.id, overrides)
     },
-    onSuccess: onClose,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      invalidateAuthorization(queryClient)
+      onClose()
+    },
     onError: (err) => setError(extractError(err)),
   })
 

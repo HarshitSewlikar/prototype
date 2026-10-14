@@ -17,6 +17,7 @@ export const queryClient = new QueryClient({
 export const queryKeys = {
   authMe: ['auth', 'me'],
   authAccess: ['auth', 'access'],
+  authModules: ['auth', 'modules'],
   navigationMenus: ['navigation', 'menus'],
   users: (filters) => ['users', filters],
   roles: (filters) => ['roles', filters],
@@ -29,4 +30,10 @@ export const queryKeys = {
   marketMovers: ['market', 'movers'],
   marketSectors: ['market', 'sectors'],
   marketScore: (symbol) => ['market', 'score', symbol],
+  todoAssignees: ['todos', 'assignees'],
+}
+
+export const invalidateAuthorization = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.authAccess })
+  queryClient.invalidateQueries({ queryKey: queryKeys.authMe })
 }

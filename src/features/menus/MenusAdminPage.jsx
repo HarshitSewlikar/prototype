@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { queryKeys } from '../../app/queryClient'
+import { invalidateAuthorization, queryKeys } from '../../app/queryClient'
 import { COMPONENT_REGISTRY } from '../../app/componentRegistry'
 import {
   Button,
@@ -54,7 +54,7 @@ const MenusAdminPage = () => {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['menus'] })
-    queryClient.invalidateQueries({ queryKey: queryKeys.authAccess })
+    invalidateAuthorization(queryClient)
   }
 
   const saveMutation = useMutation({

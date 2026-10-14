@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { queryKeys } from '../../app/queryClient'
+import { buildTodoSave } from './todoWrite'
 import {
   Button,
   Card,
@@ -15,8 +16,10 @@ import {
 } from '../../components/common/Ui'
 import { extractError } from '../../services/http'
 import {
+  assignTodo,
   createTodo,
   deleteTodo,
+  listTodoAssignees,
   listTodos,
   setTodoStatus,
   updateTodo,
@@ -36,7 +39,7 @@ const NEXT_STATUS = {
 
 const statusLabel = (value) => value.replace('_', ' ')
 
-const emptyForm = { title: '', description: '', priority: 'normal', due_at: '', assignee: '' }
+const emptyForm = { title: '', description: '', priority: 'normal', due_at: '', assigneeId: '' }
 
 const TodosPage = () => {
   const can = usePermission()
@@ -53,11 +56,30 @@ const TodosPage = () => {
     queryFn: () => listTodos(params),
   })
 
+  const canAssign = can('todos.assign')
+  const assignees = useQuery({
+    queryKey: queryKeys.todoAssignees,
+    queryFn: listTodoAssignees,
+    enabled: canAssign,
+  })
+
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['todos'] })
 
   const saveMutation = useMutation({
-    mutationFn: (payload) =>
-      modal?.id ? updateTodo(modal.id, payload) : createTodo(payload),
+    mutationFn: async ({ id, fields, assigneeId }) => {
+      try {
+        if (id) {
+          await updateTodo(id, fields)
+          if (assigneeId !== undefined) await assignTodo(id, assigneeId)
+          return
+        }
+        const created = await createTodo(fields)
+        if (assigneeId !== undefined) await assignTodo(created.id, assigneeId)
+      } catch (err) {
+        invalidate()
+        throw err
+      }
+    },
     onSuccess: () => {
       invalidate()
       setModal(null)
@@ -88,7 +110,7 @@ const TodosPage = () => {
       description: todo.description || '',
       priority: todo.priority || 'normal',
       due_at: todo.due_at ? todo.due_at.slice(0, 16) : '',
-      assignee: todo.assignee_username || '',
+      assigneeId: todo.assignee ? String(todo.assignee) : '',
     })
     setError(null)
     setModal(todo)
@@ -97,14 +119,11 @@ const TodosPage = () => {
   const submit = (event) => {
     event.preventDefault()
     setError(null)
-    const payload = {
-      title: form.title,
-      description: form.description,
-      priority: form.priority,
-      due_at: form.due_at ? new Date(form.due_at).toISOString() : null,
-      assignee: form.assignee || undefined,
-    }
-    saveMutation.mutate(payload)
+    const plan = buildTodoSave(form, modal?.assignee ?? null, {
+      isEdit: !!modal?.id,
+      canAssign,
+    })
+    saveMutation.mutate({ id: modal?.id, ...plan })
   }
 
   const columns = [
@@ -268,12 +287,33 @@ const TodosPage = () => {
                   </option>
                 ))}
               </Select>
-              <Input
-                label="Assignee"
-                value={form.assignee}
-                onChange={(e) => setForm((p) => ({ ...p, assignee: e.target.value }))}
-                placeholder="Username (e.g. user)"
-              />
+              {canAssign ? (
+                <Select
+                  label="Assignee"
+                  value={form.assigneeId}
+                  onChange={(e) => setForm((p) => ({ ...p, assigneeId: e.target.value }))}
+                >
+                  <option value="">Unassigned</option>
+                  {form.assigneeId &&
+                    !(assignees.data?.results || []).some(
+                      (user) => String(user.id) === String(form.assigneeId),
+                    ) && (
+                      <option value={form.assigneeId}>
+                        {modal?.assignee_username || `User ${form.assigneeId}`}
+                      </option>
+                    )}
+                  {(assignees.data?.results || []).map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name ? `${user.username} (${user.name})` : user.username}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Assignee</span>
+                  <span className="text-slate-600">{modal?.assignee_username || 'Unassigned'}</span>
+                </div>
+              )}
             </div>
             <Input
               label="Due at"

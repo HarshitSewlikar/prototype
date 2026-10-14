@@ -71,7 +71,11 @@ def record_login_attempt(username, ip_address, successful):
     )
 
 
-def is_locked_out(username, ip_address, *, window_minutes=15, threshold=5):
+def is_locked_out(username, ip_address, *, window_minutes=None, threshold=None):
+    if window_minutes is None:
+        window_minutes = int(getattr(settings, "LOGIN_LOCKOUT_MINUTES", 15))
+    if threshold is None:
+        threshold = int(getattr(settings, "LOGIN_LOCKOUT_THRESHOLD", 50))
     since = timezone.now() - timezone.timedelta(minutes=window_minutes)
     failures = LoginAttempt.objects.filter(
         username=str(username or "")[:150],

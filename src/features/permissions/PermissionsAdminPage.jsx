@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { queryKeys } from '../../app/queryClient'
+import { invalidateAuthorization, queryKeys } from '../../app/queryClient'
 import {
   Button,
   Card,
@@ -36,7 +36,10 @@ const PermissionsAdminPage = () => {
     queryFn: () => listPermissions({ page_size: 200 }),
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['permissions'] })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['permissions'] })
+    invalidateAuthorization(queryClient)
+  }
 
   const saveMutation = useMutation({
     mutationFn: (payload) =>

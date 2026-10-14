@@ -147,14 +147,19 @@ def test_refresh_rotates_and_logout_revokes(api, admin_user):
 
 
 @pytest.mark.django_db
-def test_repeated_failed_logins_are_throttled(api, make_user):
+def test_repeated_failed_logins_are_throttled(api, make_user, settings):
+    settings.LOGIN_LOCKOUT_THRESHOLD = 3
     make_user("target")
-    last_status = None
-    for _ in range(8):
+    for _ in range(3):
         response = api.post(
             "/api/v1/auth/login/",
             {"username": "target", "password": "wrong"},
             format="json",
         )
-        last_status = response.status_code
-    assert last_status in (429, 401)
+        assert response.status_code == 401
+    locked = api.post(
+        "/api/v1/auth/login/",
+        {"username": "target", "password": "wrong"},
+        format="json",
+    )
+    assert locked.status_code == 429

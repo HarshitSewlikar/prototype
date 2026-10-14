@@ -11,7 +11,8 @@ import {
   FileText, 
   LogOut,
   TrendingUp,
-  Activity
+  Activity,
+  SlidersHorizontal
 } from 'lucide-react'
 
 import { useAuth } from '../../features/auth/AuthProvider'
@@ -25,6 +26,7 @@ const ICON_MAP = {
   roles: ShieldCheck,
   permissions: Key,
   menus: MenuIcon,
+  modules: SlidersHorizontal,
   audit: FileText,
 }
 
@@ -36,7 +38,7 @@ const navClass = ({ isActive }) =>
   }`
 
 const AppLayout = () => {
-  const { user, logout, switchAccount } = useAuth()
+  const { user, logout } = useAuth()
   const { data } = useAccess()
   const navigate = useNavigate()
   const menus = data?.menus || []
@@ -44,13 +46,6 @@ const AppLayout = () => {
   const handleLogout = async () => {
     await logout()
     navigate('/login', { replace: true })
-  }
-
-  const handleRoleSwitch = async (e) => {
-    const targetUsername = e.target.value
-    if (targetUsername && targetUsername !== user?.username) {
-      await switchAccount(targetUsername)
-    }
   }
 
   return (
@@ -120,7 +115,7 @@ const AppLayout = () => {
           <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px]">
             <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live
+              Signed in
             </span>
             <button
               onClick={handleLogout}
@@ -149,20 +144,9 @@ const AppLayout = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs">
-              <label htmlFor="quick-switch" className="hidden sm:inline font-semibold text-slate-500">
-                Switch Role Profile:
-              </label>
-              <select
-                id="quick-switch"
-                value={user?.username || ''}
-                onChange={handleRoleSwitch}
-                className="rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 outline-none hover:bg-slate-100 focus:border-blue-500 transition-colors"
-              >
-                <option value="admin">Administrator (Full Access)</option>
-                <option value="auditor">Auditor (Compliance & Read)</option>
-                <option value="user">Financial Analyst (Scoped)</option>
-              </select>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Authenticated session
             </div>
 
             <Button variant="secondary" className="text-xs py-1 px-2.5" onClick={handleLogout}>

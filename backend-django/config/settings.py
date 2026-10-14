@@ -73,6 +73,10 @@ CSRF_TRUSTED_ORIGINS = env_list(
 # One-time code required to bootstrap the very first administrator.
 ADMIN_SIGNUP_CODE = env("ADMIN_SIGNUP_CODE", "")
 
+# Failed-login lockout. A handful of typos must not block sign-in.
+LOGIN_LOCKOUT_MINUTES = int(env("LOGIN_LOCKOUT_MINUTES", "15"))
+LOGIN_LOCKOUT_THRESHOLD = int(env("LOGIN_LOCKOUT_THRESHOLD", "50"))
+
 # --------------------------------------------------------------------------
 # Applications
 # --------------------------------------------------------------------------
@@ -199,7 +203,7 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.ScopedRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
-        "login": env("THROTTLE_LOGIN", "10/min"),
+        "login": env("THROTTLE_LOGIN", "120/min"),
         "bootstrap": env("THROTTLE_BOOTSTRAP", "5/min"),
         "refresh": env("THROTTLE_REFRESH", "30/min"),
     },

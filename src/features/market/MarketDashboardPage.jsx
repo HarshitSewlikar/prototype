@@ -147,6 +147,11 @@ const MarketDashboardPage = () => {
   )
 
   const moversData = movers.data?.data
+  const dataSource = daily.data?.source || sectors.data?.source || movers.data?.source || score.data?.source
+  const leadSector = sectors.data?.data?.[0]
+  const topGainer = moversData?.topGainers?.[0]
+  const topLoser = moversData?.topLosers?.[0]
+  const scoreValue = score.data?.data?.score
 
   return (
     <div className="space-y-6">
@@ -190,17 +195,19 @@ const MarketDashboardPage = () => {
           <div className="flex items-baseline justify-between">
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-black text-slate-900 font-mono">
-                {score.data?.data?.score ?? '—'}
+                {scoreValue ?? '—'}
               </span>
               <span className="text-xs text-slate-400 font-medium">/ 15</span>
             </div>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              (score.data?.data?.score || 0) >= 10
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border border-amber-200'
-            }`}>
-              {(score.data?.data?.score || 0) >= 10 ? 'Strong Bullish' : 'Moderate'}
-            </span>
+            {typeof scoreValue === 'number' && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                scoreValue >= 10
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                {scoreValue >= 10 ? 'Strong Bullish' : 'Moderate'}
+              </span>
+            )}
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Multi-factor volatility & volume</p>
         </div>
@@ -213,12 +220,12 @@ const MarketDashboardPage = () => {
           </div>
           <div>
             <span className="text-sm font-bold text-slate-900 block truncate">
-              {sectors.data?.data?.[0]?.sector || 'Technology'}
+              {leadSector?.sector || '—'}
             </span>
             <div className="flex items-center justify-between mt-1">
               <span className="text-xs text-slate-500">Allocation Weight:</span>
               <span className="text-xs font-mono font-bold text-emerald-600">
-                +{((sectors.data?.data?.[0]?.performance || 0.82) * 100).toFixed(0)}%
+                {leadSector ? `+${(Number(leadSector.performance) * 100).toFixed(0)}%` : '—'}
               </span>
             </div>
           </div>
@@ -234,13 +241,17 @@ const MarketDashboardPage = () => {
             <div>
               <span className="text-xs text-slate-500 block">Top Gainer:</span>
               <span className="text-xs font-mono font-bold text-emerald-600">
-                {moversData?.topGainers?.[0]?.ticker || 'AAPL'} (+{moversData?.topGainers?.[0]?.changePercentage.toFixed(1)}%)
+                {topGainer
+                  ? `${topGainer.ticker} (+${Number(topGainer.changePercentage).toFixed(1)}%)`
+                  : '—'}
               </span>
             </div>
             <div className="text-right">
               <span className="text-xs text-slate-500 block">Top Loser:</span>
               <span className="text-xs font-mono font-bold text-rose-600">
-                {moversData?.topLosers?.[0]?.ticker || 'PTON'} ({moversData?.topLosers?.[0]?.changePercentage.toFixed(1)}%)
+                {topLoser
+                  ? `${topLoser.ticker} (${Number(topLoser.changePercentage).toFixed(1)}%)`
+                  : '—'}
               </span>
             </div>
           </div>
@@ -268,6 +279,18 @@ const MarketDashboardPage = () => {
         </div>
 
         {/* Time range pills */}
+        <div className="flex items-center gap-3">
+          {dataSource && (
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-1 rounded-md border ${
+                dataSource === 'live'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              {dataSource === 'live' ? 'Live market feed' : 'Simulated market data'}
+            </span>
+          )}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80">
           {TIME_RANGES.map((r) => (
             <button
@@ -282,6 +305,7 @@ const MarketDashboardPage = () => {
               {r.label}
             </button>
           ))}
+        </div>
         </div>
       </div>
 

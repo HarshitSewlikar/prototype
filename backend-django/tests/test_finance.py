@@ -34,7 +34,7 @@ def _deterministic_daily(n=40):
 def _node_score(daily):
     if shutil.which("node") is None:
         pytest.skip("node is not available for parity testing")
-    script = Path(settings.BASE_DIR) / "tests" / "parity" / "score_parity.js"
+    script = Path(settings.BASE_DIR) / "tests" / "parity" / "score_parity.cjs"
     with tempfile.NamedTemporaryFile(
         "w", suffix=".json", delete=False, encoding="utf-8"
     ) as handle:

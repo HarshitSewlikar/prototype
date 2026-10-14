@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from access_control import policy
-from access_control.permissions import CanAccessTodo, HasPermission
+from access_control.permissions import CanAccessTodo, HasPermission, ModuleEnabled
 from audit.services import record_audit
 
 from .models import Todo
@@ -30,19 +30,29 @@ class TodoViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in {"list", "retrieve"}:
-            return [HasPermission("todos.read")()]
+            return [HasPermission("todos.read")(), ModuleEnabled("todos")()]
         if self.action == "create":
-            return [HasPermission("todos.create")()]
+            return [HasPermission("todos.create")(), ModuleEnabled("todos")()]
         if self.action == "destroy":
-            return [HasPermission("todos.delete")(), CanAccessTodo()]
+            return [
+                HasPermission("todos.delete")(),
+                CanAccessTodo(),
+                ModuleEnabled("todos")(),
+            ]
+        if self.action == "assignees":
+            return [HasPermission("todos.assign")(), ModuleEnabled("todos")()]
         if self.action in {"assign", "status"}:
             perms = [HasPermission("todos.update")()]
             if self.action == "assign":
                 perms = [HasPermission("todos.assign")()]
-            return perms
+            return perms + [ModuleEnabled("todos")()]
         if self.action in {"update", "partial_update"}:
-            return [HasPermission("todos.update")(), CanAccessTodo()]
-        return [HasPermission("todos.read")()]
+            return [
+                HasPermission("todos.update")(),
+                CanAccessTodo(),
+                ModuleEnabled("todos")(),
+            ]
+        return [HasPermission("todos.read")(), ModuleEnabled("todos")()]
 
     def get_queryset(self):
         user = self.request.user
@@ -89,6 +99,25 @@ class TodoViewSet(viewsets.ModelViewSet):
             object_id=todo.pk,
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["get"])
+    def assignees(self, request):
+        """Active users that may be selected as a to-do assignee.
+
+        Returns ids so the client can call the assign endpoint, which expects
+        a user primary key. This does not grant user-administration access.
+        """
+        users = User.objects.filter(is_active=True, deleted_at__isnull=True).order_by(
+            "username"
+        )
+        return Response(
+            {
+                "results": [
+                    {"id": user.pk, "username": user.username, "name": user.name}
+                    for user in users
+                ]
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def assign(self, request, pk=None):
